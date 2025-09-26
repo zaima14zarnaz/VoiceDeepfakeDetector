@@ -15,7 +15,7 @@ from torch import nn
 
 import os
 
-from feature_extractor import extract_features_deepsonar
+from feature_extractor import extract_features
 from model import Detector
 from train import train
 from evaluate import evaluate
@@ -41,42 +41,57 @@ for filename in os.listdir(fake_root_dir):
     labels.append('fake')
 
 print('Dataset is loaded')
-extract_feats = False
+extract_feats = True
 pretrained_model = False
-save_path = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/deepsonar/best.pth"
+save_path = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/VoiceDeepfakeDetector/deepsonar/best.pth"
 
 feat_save_dir = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Dataset/inTheWildAudioDeekfake/features"
-x, y = extract_features_deepsonar(fake_root_dir, real_root_dir, feat_save_dir, dataset_size=None, extract_feats=extract_feats)
+x1, x2, y = extract_features(fake_root_dir, real_root_dir, feat_save_dir, dataset_size=None, extract_feats=extract_feats)
 
-xtrain,xtest,ytrain,ytest = train_test_split(x,y,test_size = .2)
-train_ds = TensorDataset(torch.tensor(xtrain, dtype=torch.float32),
-                         torch.tensor(ytrain, dtype=torch.long))
-test_ds  = TensorDataset(torch.tensor(xtest, dtype=torch.float32),
-                         torch.tensor(ytest, dtype=torch.long))
+x1train, x1test, x2train, x2test, ytrain, ytest = train_test_split(
+    x1, x2, y, test_size=0.2
+)
+
+train_ds = TensorDataset(
+    torch.tensor(x1train, dtype=torch.float32),
+    torch.tensor(x2train, dtype=torch.float32),
+    torch.tensor(ytrain, dtype=torch.long)
+)
+test_ds = TensorDataset(
+    torch.tensor(x1test, dtype=torch.float32),
+    torch.tensor(x2test, dtype=torch.float32),
+    torch.tensor(ytest, dtype=torch.long)
+)
 
 train_loader = DataLoader(train_ds, batch_size=32, shuffle=True)
 test_loader  = DataLoader(test_ds, batch_size=32)
 
-# model
+# -----------------------
+# Model setup
+# -----------------------
 device = "cuda" if torch.cuda.is_available() else "cpu"
-in_dim = xtrain.shape[-1]
-model = Detector(in_dim).to(device)
+dim1 = x1train.shape[-1]        # DeepSonar features
+dim2 = x2train.shape[-1]        # MFCC feature dim
+model = Detector(dim1, dim2).to(device)
 
-# optimizer + loss
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
 criterion = nn.CrossEntropyLoss()
 
+# -----------------------
+# Training
+# -----------------------
 if not pretrained_model:
     model = train(model=model,
-                train_loader=train_loader,
-                optimizer=optimizer, 
-                criterion=criterion, 
-                device="cuda",
-                save_path=save_path)
+                  train_loader=train_loader,
+                  optimizer=optimizer,
+                  criterion=criterion,
+                  device=device,
+                  save_path=save_path)
 else:
     model.load_state_dict(torch.load(save_path)).to(device)
 
-accuracy = evaluate(model=model, 
-                 test_loader=test_loader, 
-                 device="cuda")
-print(f"Accuracy: {accuracy}")
+# -----------------------
+# Evaluation
+# -----------------------
+accuracy = evaluate(model=model, test_loader=test_loader, device=device)
+print(f"Accuracy: {accuracy:.4f}")
