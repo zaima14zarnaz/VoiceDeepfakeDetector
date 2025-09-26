@@ -47,8 +47,6 @@ save_path = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/deepsonar
 
 feat_save_dir = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Dataset/inTheWildAudioDeekfake/features"
 x, y = extract_features_deepsonar(fake_root_dir, real_root_dir, feat_save_dir, dataset_size=None, extract_feats=extract_feats)
-print("Features shape:", x.shape)
-print("Labels shape:", y.shape)
 
 xtrain,xtest,ytrain,ytest = train_test_split(x,y,test_size = .2)
 train_ds = TensorDataset(torch.tensor(xtrain, dtype=torch.float32),
