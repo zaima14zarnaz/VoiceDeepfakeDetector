@@ -41,21 +41,35 @@ for filename in os.listdir(fake_root_dir):
     labels.append('fake')
 
 print('Dataset is loaded')
-extract_feats = True
-pretrained_model = False
-save_path = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/VoiceDeepfakeDetector/deepsonar/best.pth"
+extract_feats = False
+pretrained_model = True
+model_save_path = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/VoiceDeepfakeDetector/deepsonar/best.pth"
+auc_roc_path =  "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/VoiceDeepfakeDetector/deepsonar/auc_roc.png"
 
 feat_save_dir = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Dataset/inTheWildAudioDeekfake/features"
 x1, x2, y = extract_features(fake_root_dir, real_root_dir, feat_save_dir, dataset_size=None, extract_feats=extract_feats)
 
+# first split: train (80%) + test (20%)
 x1train, x1test, x2train, x2test, ytrain, ytest = train_test_split(
-    x1, x2, y, test_size=0.2
+    x1, x2, y, test_size=0.2, random_state=42, stratify=y
 )
 
+# second split: from train into train (70%) + val (10%)
+x1train, x1val, x2train, x2val, ytrain, yval = train_test_split(
+    x1train, x2train, ytrain, test_size=0.125, random_state=42, stratify=ytrain
+)
+# (0.125 of 80% ≈ 10% of total)
+
+# build datasets
 train_ds = TensorDataset(
     torch.tensor(x1train, dtype=torch.float32),
     torch.tensor(x2train, dtype=torch.float32),
     torch.tensor(ytrain, dtype=torch.long)
+)
+val_ds = TensorDataset(
+    torch.tensor(x1val, dtype=torch.float32),
+    torch.tensor(x2val, dtype=torch.float32),
+    torch.tensor(yval, dtype=torch.long)
 )
 test_ds = TensorDataset(
     torch.tensor(x1test, dtype=torch.float32),
@@ -63,7 +77,9 @@ test_ds = TensorDataset(
     torch.tensor(ytest, dtype=torch.long)
 )
 
+# loaders
 train_loader = DataLoader(train_ds, batch_size=32, shuffle=True)
+val_loader   = DataLoader(val_ds, batch_size=32)
 test_loader  = DataLoader(test_ds, batch_size=32)
 
 # -----------------------
@@ -83,12 +99,15 @@ criterion = nn.CrossEntropyLoss()
 if not pretrained_model:
     model = train(model=model,
                   train_loader=train_loader,
+                  val_loader=val_loader,
                   optimizer=optimizer,
                   criterion=criterion,
+                  epochs=50,
                   device=device,
-                  save_path=save_path)
-else:
-    model.load_state_dict(torch.load(save_path)).to(device)
+                  model_save_path=model_save_path,
+                  auc_fig_path=auc_roc_path)
+model.load_state_dict(torch.load(model_save_path, weights_only=True))
+model = model.to(device="cuda")
 
 # -----------------------
 # Evaluation
