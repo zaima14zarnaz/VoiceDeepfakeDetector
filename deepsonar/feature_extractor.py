@@ -2,8 +2,8 @@ from tqdm import tqdm
 import os, numpy as np, torch, torchaudio
 from tqdm import tqdm
 
-from backbone import SRBackbone
-from behavior import pack_features
+from deepsonar.backbone import SRBackbone
+from deepsonar.behavior import pack_features
 import librosa
 
 def extract_audio_features(wav, sr=16000, n_mfcc=40, max_len=500):
