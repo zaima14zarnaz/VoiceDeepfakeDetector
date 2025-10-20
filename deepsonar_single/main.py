@@ -41,9 +41,9 @@ for filename in os.listdir(fake_root_dir):
     labels.append('fake')
 
 print('Dataset is loaded')
-extract_feats = False
+extract_feats = True
 pretrained_model = False
-model_save_path = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/VoiceDeepfakeDetector/deepsonar_single/best_single.pth"
+model_save_path = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/VoiceDeepfakeDetector/ckpt/best_single.pth"
 auc_roc_path =  "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/VoiceDeepfakeDetector/deepsonar_single/auc_roc.png"
 
 feat_save_dir = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Dataset/inTheWildAudioDeekfake/features"
