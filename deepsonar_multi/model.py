@@ -56,8 +56,8 @@ class Detector_Single_Feat(nn.Module):
         super().__init__()
 
         self.net = nn.Sequential(
-            nn.LayerNorm(hidden//2),
-            nn.Linear(hidden//2, hidden),
+            nn.LayerNorm(dim1),
+            nn.Linear(dim1, hidden),
             nn.ReLU(),
             nn.Dropout(p),
             nn.Linear(hidden, hidden//2),
