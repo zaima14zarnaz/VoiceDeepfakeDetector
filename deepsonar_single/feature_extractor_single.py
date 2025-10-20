@@ -1,12 +1,16 @@
 from tqdm import tqdm
 import os, numpy as np, torch, torchaudio
-from tqdm import tqdm
-import librosa
+
+try:
+    from .backbone import SRBackbone
+    from .behavior import pack_features
+except ImportError:  # pragma: no cover - fallback for standalone execution
+    from backbone import SRBackbone
+    from behavior import pack_features
+    
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from backbone import SRBackbone
-from behavior import pack_features
 
 
 def extract_features(fake_root_dir, real_root_dir, feat_save_dir,

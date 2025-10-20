@@ -1,5 +1,6 @@
 Download the dataset (In the Wild (Audio Deepfake)) from: https://www.kaggle.com/datasets/abdallamohamed312/in-the-wild-audio-deepfake
 
+First, set paths to the dataset and model_save_path in main.py.
 The code in deepsonar_single/ directory is the original deepsonar model from the paper: DeepSonar: Towards Effective and Robust Detection of AI-Synthesized Fake Voices (link: https://dl.acm.org/doi/abs/10.1145/3394171.3413716)
 
 The code in deepsonar_multi/ directory is out improved model with multimodal activation and spectral features fused using cross-attention
@@ -11,3 +12,19 @@ First, set paths to the dataset, model_save_path (best_single.pth for the origin
 To run the pretrained model on the test split, set pretrained_model=True in main.py and run python -m main.
 To extract the features from scratch (for the first run only), set extract_feat=True in main.py. Set it to False after extracting features once to save time. 
 To train the model, set pretrained_model=False in main.py and run python -m main
+
+# How to inference the model
+
+1. Create a virtual environment and install the dependencies using the requirements.txt file.
+
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+2. Run the app.py file, and upload the audio file to the web interface.
+
+```bash
+streamlit run app.py
+```
