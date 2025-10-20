@@ -1,8 +1,13 @@
 from tqdm import tqdm
 import os, numpy as np, torch, torchaudio
 from tqdm import tqdm
-from backbone import SRBackbone
-from behavior import pack_features
+# Support both package-style and script-style imports
+try:
+    from .backbone import SRBackbone
+    from .behavior import pack_features
+except ImportError:  # pragma: no cover - fallback for standalone execution
+    from backbone import SRBackbone
+    from behavior import pack_features
 
 import librosa
 
