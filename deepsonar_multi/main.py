@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
+import sys
 import librosa
 import matplotlib.pyplot as plt
 # import IPython
@@ -16,24 +17,27 @@ from torch import nn
 import os
 
 from feature_extractor_multi import extract_features
-from model import Detector_Multi_Feat
 from train import train
 from evaluate import evaluate
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from model import Detector_Multi_Feat
 
 
 paths = []
 labels = []
 
-# Define the root directory
+# WaveFake dataset root directory
 real_root_dir = '/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Dataset/inTheWildAudioDeekfake/real'
 fake_root_dir = '/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Dataset/inTheWildAudioDeekfake/fake'
-# Iterate through the subdirectories
+
+# Iterate through the real samples
 for filename in os.listdir(real_root_dir):
     file_path = os.path.join(real_root_dir, filename)
     paths.append(file_path)
     # Add label based on the subdirectory name
     labels.append('real')
 
+# Iterate through the fake samples
 for filename in os.listdir(fake_root_dir):
     file_path = os.path.join(fake_root_dir, filename)
     paths.append(file_path)
@@ -41,13 +45,18 @@ for filename in os.listdir(fake_root_dir):
     labels.append('fake')
 
 print('Dataset is loaded')
-extract_feats = False
-pretrained_model = False
-model_save_path = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/VoiceDeepfakeDetector/ckpt/best_multi.pth"
-auc_roc_path =  "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/VoiceDeepfakeDetector/deepsonar_multi/auc_roc.png"
 
-feat_save_dir = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Dataset/inTheWildAudioDeekfake/features"
-x1, x2, y = extract_features(fake_root_dir, real_root_dir, feat_save_dir, dataset_size=None, extract_feats=extract_feats)
+# Set to True if features are to be extracted from scratch, set to False if loading pre_loaded features from the feat_save_dir
+extract_feats = True
+
+# Set to True if testing dataset on pretrained model
+pretrained_model = False
+
+model_save_path = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Code/VoiceDeepfakeDetector/ckpt/best_multi.pth" # Best model save path
+feat_save_dir = "/home/zaimaz/Desktop/research1/VoiceDeepfakeDetector/Dataset/inTheWildAudioDeekfake/features" # Path to save extracted features from pretrained network
+
+# Extract (x1=deepsonar features, x2=spectral features, y=labels) from real and fake samples
+x1, x2, y = extract_features(fake_root_dir, real_root_dir, feat_save_dir=feat_save_dir, dataset_size=None, extract_feats=extract_feats) 
 
 # first split: train (80%) + test (20%)
 x1train, x1test, x2train, x2test, ytrain, ytest = train_test_split(
@@ -60,7 +69,7 @@ x1train, x1val, x2train, x2val, ytrain, yval = train_test_split(
 )
 # (0.125 of 80% ≈ 10% of total)
 
-# build datasets
+# build train, val and test datasets
 train_ds = TensorDataset(
     torch.tensor(x1train, dtype=torch.float32),
     torch.tensor(x2train, dtype=torch.float32),
@@ -77,7 +86,7 @@ test_ds = TensorDataset(
     torch.tensor(ytest, dtype=torch.long)
 )
 
-# loaders
+# Create loaders
 train_loader = DataLoader(train_ds, batch_size=32, shuffle=True)
 val_loader   = DataLoader(val_ds, batch_size=32)
 test_loader  = DataLoader(test_ds, batch_size=32)
@@ -88,6 +97,7 @@ test_loader  = DataLoader(test_ds, batch_size=32)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dim1 = x1train.shape[-1]        # DeepSonar features
 dim2 = x2train.shape[-1]        # MFCC feature dim
+# Create Multi-Feature model with input dimensions: dim1=size of deepsonar feature vector and dim2=size of spectral feature vector for a sample
 model = Detector_Multi_Feat(dim1, dim2).to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
@@ -104,8 +114,8 @@ if not pretrained_model:
                   criterion=criterion,
                   epochs=50,
                   device=device,
-                  model_save_path=model_save_path,
-                  auc_fig_path=auc_roc_path)
+                  model_save_path=model_save_path)
+# Load the best model 
 model.load_state_dict(torch.load(model_save_path, weights_only=True))
 model = model.to(device="cuda")
 
